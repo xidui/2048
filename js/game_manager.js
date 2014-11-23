@@ -15,6 +15,7 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
 
 // Restart the game
 GameManager.prototype.restart = function () {
+  $('abc').text('Try Again');
   this.storageManager.clearGameState();
   this.actuator.continueGame(); // Clear the game won/lost message
   this.setup();
@@ -41,11 +42,13 @@ GameManager.prototype.setup = function () {
                                 previousState.grid.cells); // Reload grid
     this.score       = previousState.score;
     this.over        = previousState.over;
+    this.persent     = previousState.persent;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
+    this.persent     = 0;
     this.over        = false;
     this.won         = false;
     this.keepPlaying = false;
@@ -90,6 +93,7 @@ GameManager.prototype.actuate = function () {
 
   this.actuator.actuate(this.grid, {
     score:      this.score,
+    persent:    this.persent, 
     over:       this.over,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
@@ -103,6 +107,7 @@ GameManager.prototype.serialize = function () {
   return {
     grid:        this.grid.serialize(),
     score:       this.score,
+    persent:     this.persent, 
     over:        this.over,
     won:         this.won,
     keepPlaying: this.keepPlaying
@@ -186,7 +191,21 @@ GameManager.prototype.move = function (direction) {
       this.over = true; // Game over!
     }
 
+    var score = this.serialize().score;
+    $.post("/games/ratio", {"score" : score}, function(data){
+        this.persent = data;
+    });
+
     this.actuate();
+
+    if (this.isGameTerminated())
+    {
+        var score = this.serialize().score;
+        $.post("/games/result", {"score" : score}, function(data){
+            $('title').text('你得了' + score + '分!击败了全国百分之' + data.toString() + '的玩家!');
+            $('abc').text('你得了' + score + '分!击败了全国百分之' + data.toString() + '的玩家!');
+        });
+    }
   }
 };
 
